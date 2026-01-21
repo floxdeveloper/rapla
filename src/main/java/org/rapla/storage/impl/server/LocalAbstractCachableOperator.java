@@ -161,7 +161,8 @@ public abstract class LocalAbstractCachableOperator extends AbstractCachableOper
         this.promiseWait = promiseWait;
         disconnectLock = new DefaultRaplaLock(logger);
         //context.lookupDeprecated( CommandScheduler.class);
-        this.history = new EntityHistory();
+        this.history = new EntityHistory(this);
+
         appointmentBindings = new AppointmentMapClass(logger);
     }
 

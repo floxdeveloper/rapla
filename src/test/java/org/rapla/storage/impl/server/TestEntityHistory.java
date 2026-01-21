@@ -6,7 +6,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.rapla.entities.domain.Allocatable;
+import org.rapla.entities.storage.EntityResolver;
 import org.rapla.entities.storage.ReferenceInfo;
+import org.rapla.storage.LocalCache;
+import org.rapla.storage.PermissionController;
 
 import java.util.Date;
 
@@ -17,7 +20,8 @@ public class TestEntityHistory
     @Before
     public void setUp()
     {
-        entityHistory = new EntityHistory();
+        EntityResolver resolver = null;
+        entityHistory = new EntityHistory(resolver);
     }
     
     @Test

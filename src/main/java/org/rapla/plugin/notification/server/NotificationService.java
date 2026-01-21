@@ -157,8 +157,17 @@ public class NotificationService implements ServerExtension
     {
         getLogger().debug("Mail check triggered");
         List<AllocationMail> mailList = getAllocationMails(updateResult);
-        List<AllocationMail> mailList2 = getBookingRequestMails(updateResult);
+        List<AllocationMail> mailList2;
         try {
+            mailList2 = getBookingRequestMails(updateResult);
+        }
+        catch (Throwable ex)
+         {
+             logger.error("Cant get Booking request Mails due to ", ex);
+            mailList2 = Collections.emptyList();
+         }
+
+         try {
             if (!mailList.isEmpty())
             {
                 //notificationStorage.store(mailList);
@@ -178,7 +187,7 @@ public class NotificationService implements ServerExtension
 
 
     @NotNull
-    private List<AllocationMail> getBookingRequestMails(UpdateResult updateResult) throws RaplaException {
+    private List<AllocationMail> getBookingRequestMails(UpdateResult updateResult) {
         List<AllocationMail> mailList = new ArrayList<>();
         if (updateResult == null || !updateResult.getOperations().iterator().hasNext()) {
             return mailList;
@@ -279,32 +288,37 @@ public class NotificationService implements ServerExtension
         for (int i = 0; i < users.length; i++)
         {
             User user = users[i];
-            String email = user.getEmail();
-            if (email == null || email.trim().isEmpty())
-                continue;
+            try
+            {
+                String email = user.getEmail();
+                if (email == null || email.trim().isEmpty())
+                    continue;
 
-            Preferences preferences = raplaFacade.getPreferences(user);
-            RaplaMap< Allocatable> allocatableMap = null;
+                Preferences preferences = raplaFacade.getPreferences(user);
+                RaplaMap< Allocatable> allocatableMap = null;
 
-            if (preferences != null && preferences.getEntry(NotificationPlugin.ALLOCATIONLISTENERS_CONFIG) != null)
-            {
-                allocatableMap = preferences.getEntry(NotificationPlugin.ALLOCATIONLISTENERS_CONFIG);
-            }
-            else
-            {
-                continue;
-            }
-            if (allocatableMap != null && allocatableMap.size() > 0)
-            {
-                boolean notifyIfOwner = preferences.getEntryAsBoolean(NotificationPlugin.NOTIFY_IF_OWNER_CONFIG, false);
-                final ReferenceInfo<User> ownerId = preferences.getOwnerRef();
-                final User owner = ownerId != null ? raplaFacade.getOperator().resolve(ownerId) : null;
-                AllocationMail mail = getAllocationMail(new HashSet<>(allocatableMap.values()), updateResult, owner, notifyIfOwner);
-                if (mail != null)
+                if (preferences != null && preferences.getEntry(NotificationPlugin.ALLOCATIONLISTENERS_CONFIG) != null)
                 {
-                    mailList.add(mail);
+                    allocatableMap = preferences.getEntry(NotificationPlugin.ALLOCATIONLISTENERS_CONFIG);
                 }
+                else
+                {
+                    continue;
+                }
+                if (allocatableMap != null && allocatableMap.size() > 0)
+                {
+                    boolean notifyIfOwner = preferences.getEntryAsBoolean(NotificationPlugin.NOTIFY_IF_OWNER_CONFIG, false);
+                    final ReferenceInfo<User> ownerId = preferences.getOwnerRef();
+                    final User owner = ownerId != null ? raplaFacade.getOperator().resolve(ownerId) : null;
+                    AllocationMail mail = getAllocationMail(new HashSet<>(allocatableMap.values()), updateResult, owner, notifyIfOwner);
+                    if (mail != null)
+                    {
+                        mailList.add(mail);
+                    }
 
+                }
+            } catch (RaplaException e) {
+                logger.error("Ignoring mails from user " + user.getUsername() + " due to ", e);
             }
         }
         return mailList;
@@ -347,41 +361,48 @@ public class NotificationService implements ServerExtension
         for (int i = 0; i < changeEvents.size(); i++)
         {
             AllocationChangeEvent event = changeEvents.get(i);
-            Reservation reservation = event.getNewReservation();
-            Allocatable allocatable = event.getAllocatable();
-            final String templateId = reservation.getAnnotation(RaplaObjectAnnotations.KEY_TEMPLATE);
-            if (templateId != null)
-            {
-                continue;
-            }
-            if (planningStatusEnabled )
-            {
-                Classification classification = reservation.getClassification();
-                Attribute attribute = classification.getAttribute("status");
-                if (attribute != null)
+            Reservation reservation=null;
+            try {
+                reservation = event.getNewReservation();
+                Allocatable allocatable = event.getAllocatable();
+                final String templateId = reservation.getAnnotation(RaplaObjectAnnotations.KEY_TEMPLATE);
+                if (templateId != null)
                 {
-                    Object valueForAttribute = classification.getValueForAttribute(attribute);
-                    if (valueForAttribute != null && valueForAttribute.equals(Boolean.FALSE))
+                    continue;
+                }
+                if (planningStatusEnabled )
+                {
+                    Classification classification = reservation.getClassification();
+                    Attribute attribute = classification.getAttribute("status");
+                    if (attribute != null)
                     {
-                        // skip non plannable events
-                        continue;
+                        Object valueForAttribute = classification.getValueForAttribute(attribute);
+                        if (valueForAttribute != null && valueForAttribute.equals(Boolean.FALSE))
+                        {
+                            // skip non plannable events
+                            continue;
+                        }
                     }
                 }
+
+
+               // Did the user opt in for the resource?
+                if (!allocatablesTheUsersListensTo.contains(allocatable))
+                    continue;
+                if (!notifyIfOwner && (reservation.getLastChangedBy() != null && owner.getReference().equals(reservation.getLastChangedBy())))
+                    continue;
+                List<AllocationChangeEvent> eventList = reservationMap.get(reservation);
+                if (eventList == null)
+                {
+                    eventList = new ArrayList<>(3);
+                    reservationMap.put(reservation, eventList);
+                }
+                changedAllocatables.add(allocatable);
+                eventList.add(event);
+            } catch (Exception e) {
+                logger.error("Error while processing allocation mail. Ignoring reservation " + reservation != null ? reservation.getId() : "" , e);
             }
 
-            // Did the user opt in for the resource?
-            if (!allocatablesTheUsersListensTo.contains(allocatable))
-                continue;
-            if (!notifyIfOwner && (reservation.getLastChangedBy() != null && owner.getReference().equals(reservation.getLastChangedBy())))
-                continue;
-            List<AllocationChangeEvent> eventList = reservationMap.get(reservation);
-            if (eventList == null)
-            {
-                eventList = new ArrayList<>(3);
-                reservationMap.put(reservation, eventList);
-            }
-            changedAllocatables.add(allocatable);
-            eventList.add(event);
         }
         if (reservationMap == null || changedAllocatables == null)
         {

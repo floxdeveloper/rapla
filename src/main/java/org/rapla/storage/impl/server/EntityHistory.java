@@ -14,6 +14,8 @@ import org.rapla.entities.dynamictype.DynamicType;
 import org.rapla.entities.dynamictype.internal.DynamicTypeImpl;
 import org.rapla.entities.internal.CategoryImpl;
 import org.rapla.entities.internal.UserImpl;
+import org.rapla.entities.storage.EntityReferencer;
+import org.rapla.entities.storage.EntityResolver;
 import org.rapla.entities.storage.ReferenceInfo;
 import org.rapla.facade.Conflict;
 import org.rapla.facade.internal.ConflictImpl;
@@ -86,10 +88,11 @@ public class EntityHistory
 
     private final Map<ReferenceInfo, List<EntityHistory.HistoryEntry>> map = new ConcurrentHashMap<>();
     private final JsonParserWrapper.JsonParser gson;
-
-    public EntityHistory()
+    private EntityResolver resolver;
+    public EntityHistory(EntityResolver resolver)
     {
         gson = JsonParserWrapper.defaultJson().get();
+        this.resolver = resolver;
     }
 
     public HistoryEntry getLatest(ReferenceInfo id) throws RaplaException
@@ -189,6 +192,11 @@ public class EntityHistory
         final Class typeClass = entry.getId().getType();
         final Class<? extends Entity> implementingClass = typeImpl.get(typeClass);
         final Entity entity = gson.fromJson(json, implementingClass);
+
+        if (entity instanceof EntityReferencer && resolver != null)
+        {
+            ((EntityReferencer)entity).setResolver(resolver);
+        }
         return entity;
     }
 
