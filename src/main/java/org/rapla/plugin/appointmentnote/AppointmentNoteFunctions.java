@@ -27,7 +27,7 @@ import org.rapla.facade.RaplaFacade;
 import org.rapla.inject.Extension;
 
 import javax.inject.Inject;
-import javax.inject.Provider;;
+import javax.inject.Provider;
 import java.util.List;
 
 
