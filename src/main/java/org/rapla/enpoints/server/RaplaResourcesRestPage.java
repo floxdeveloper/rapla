@@ -1,5 +1,11 @@
 package org.rapla.enpoints.server;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.rapla.entities.Entity;
 import org.rapla.entities.User;
 import org.rapla.entities.domain.Allocatable;
@@ -36,7 +42,8 @@ import java.util.List;
 import java.util.Map;
 
 @Path("resources")
-public class RaplaResourcesRestPage  {
+@Tag(name = "Resources", description = "Manage resources and persons")
+public class RaplaResourcesRestPage {
 
 	private final Collection<String> CLASSIFICATION_TYPES = Arrays.asList(DynamicTypeAnnotations.VALUE_CLASSIFICATION_TYPE_RESOURCE,
 			DynamicTypeAnnotations.VALUE_CLASSIFICATION_TYPE_PERSON);
@@ -112,8 +119,12 @@ public class RaplaResourcesRestPage  {
     }
 
 	@GET
-	public List<AllocatableImpl> list( @QueryParam("resourceTypes") List<String> resourceTypes,
-			@QueryParam("attributeFilter") Map<String, String> simpleFilter) throws RaplaException {
+	@Operation(summary = "List resources and persons", description = "Get a list of resources and persons filtered by type and attributes")
+	@ApiResponse(responseCode = "200", description = "List of resources", content = @Content(schema = @Schema(implementation = AllocatableImpl.class)))
+	@ApiResponse(responseCode = "401", description = "Unauthorized")
+	public List<AllocatableImpl> list(
+			@Parameter(description = "List of resource type keys to filter by", required = false) @QueryParam("resourceTypes") List<String> resourceTypes,
+			@Parameter(description = "Attribute filter as JSON map", required = false) @QueryParam("attributeFilter") Map<String, String> simpleFilter) throws RaplaException {
 	    final User user = session.checkAndGetUser(request);
 		ClassificationFilter[] filters = getClassificationFilter(facade, simpleFilter, CLASSIFICATION_TYPES, resourceTypes);
 		Collection<Allocatable> resources = operator.getAllocatables(filters);
@@ -129,16 +140,24 @@ public class RaplaResourcesRestPage  {
 
 	@GET
 	@Path("{id}")
-	public AllocatableImpl get( @PathParam("id") String id) throws RaplaException {
+	@Operation(summary = "Get resource by ID", description = "Retrieve a specific resource or person by its ID")
+	@ApiResponse(responseCode = "200", description = "Resource found", content = @Content(schema = @Schema(implementation = AllocatableImpl.class)))
+	@ApiResponse(responseCode = "404", description = "Resource not found")
+	@ApiResponse(responseCode = "401", description = "Unauthorized")
+	public AllocatableImpl get(@Parameter(description = "Resource/Person ID", required = true) @PathParam("id") String id) throws RaplaException {
         final User user = session.checkAndGetUser(request);
 		AllocatableImpl resource = (AllocatableImpl) operator.resolve(id, Allocatable.class);
 		securityManager.checkRead( user, resource);
 		return resource;
 	}
 
+	@Operation(summary = "Delete resource", description = "Delete a resource or person by ID")
+	@ApiResponse(responseCode = "200", description = "Resource deleted")
+	@ApiResponse(responseCode = "404", description = "Resource not found")
+	@ApiResponse(responseCode = "403", description = "Forbidden - no delete permissions")
 	@DELETE
 	@Path("{id}")
-	public void delete( @PathParam("id") String id) throws RaplaException {
+	public void delete(@Parameter(description = "Resource/Person ID", required = true) @PathParam("id") String id) throws RaplaException {
 		final User user = session.checkAndGetUser(request);
 		AllocatableImpl resource = (AllocatableImpl) operator.resolve(id, Allocatable.class);
 		securityManager.checkDeletePermissions(user, resource);
@@ -147,8 +166,11 @@ public class RaplaResourcesRestPage  {
 		operator.storeAndRemove(storeObjects, removeObjects, user, false);
 	}
 
+	@Operation(summary = "Update resource", description = "Update a complete resource or person")
+	@ApiResponse(responseCode = "200", description = "Resource updated", content = @Content(schema = @Schema(implementation = AllocatableImpl.class)))
+	@ApiResponse(responseCode = "403", description = "Forbidden - no write permissions")
 	@PUT
-	public AllocatableImpl update( AllocatableImpl resource) throws RaplaException {
+	public AllocatableImpl update(@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Resource object to update", required = true) AllocatableImpl resource) throws RaplaException {
         final User user = session.checkAndGetUser(request);
 		securityManager.checkWritePermissions(user, resource);
 		PermissionController permissionController = facade.getPermissionController();
@@ -161,10 +183,13 @@ public class RaplaResourcesRestPage  {
 		AllocatableImpl result = facade.getPersistent(resource);
 		return result;
 	}
-
+	@Operation(summary = "Create resource", description = "Create a new resource or person")
+	@ApiResponse(responseCode = "201", description = "Resource created", content = @Content(schema = @Schema(implementation = AllocatableImpl.class)))
+	@ApiResponse(responseCode = "400", description = "Invalid resource data")
+	@ApiResponse(responseCode = "403", description = "Forbidden - no create permissions")
 	@POST
-	public AllocatableImpl create(AllocatableImpl resource) throws RaplaException {
-        final User user = session.checkAndGetUser(request);
+	public AllocatableImpl create(@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "New resource object", required = true) AllocatableImpl resource) throws RaplaException {
+		final User user = session.checkAndGetUser(request);
 		resource.setResolver(operator);
 		Classification classification = resource.getClassification();
 		DynamicType type = classification.getType();

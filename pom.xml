@@ -1,5 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.rapla</groupId>
@@ -49,7 +50,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
-	<build>
+    <build>
         <resources>
             <resource>
                 <directory>${basedir}/src/main/resources-filtered</directory>
@@ -60,7 +61,7 @@
                 <filtering>false</filtering>
             </resource>
         </resources>
-		<plugins>
+        <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -75,12 +76,13 @@
                         <configuration>
                             <artifactItems>
                                 <artifactItem>
-									<groupId>com.google.web.bindery</groupId>
-									<artifactId>requestfactory-server</artifactId>
-									<version>${requestfactory.version}</version>
+                                    <groupId>com.google.web.bindery</groupId>
+                                    <artifactId>requestfactory-server</artifactId>
+                                    <version>${requestfactory.version}</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.directory}/${project.build.finalName}/webclient</outputDirectory>
+                                    <outputDirectory>
+                                        ${project.build.directory}/${project.build.finalName}/webclient</outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>io.reactivex.rxjava3</groupId>
@@ -88,7 +90,8 @@
                                     <version>${rxjava.version}</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.directory}/${project.build.finalName}/webclient</outputDirectory>
+                                    <outputDirectory>
+                                        ${project.build.directory}/${project.build.finalName}/webclient</outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.reactivestreams</groupId>
@@ -96,7 +99,8 @@
                                     <version>1.0.0</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.directory}/${project.build.finalName}/webclient</outputDirectory>
+                                    <outputDirectory>
+                                        ${project.build.directory}/${project.build.finalName}/webclient</outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>com.google.code.gson</groupId>
@@ -104,7 +108,8 @@
                                     <version>${gson.version}</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.directory}/${project.build.finalName}/webclient</outputDirectory>
+                                    <outputDirectory>
+                                        ${project.build.directory}/${project.build.finalName}/webclient</outputDirectory>
                                 </artifactItem>
                                 <!--
                                 <artifactItem>
@@ -138,7 +143,8 @@
                                     <version>${javax.inject.version}</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.directory}/${project.build.finalName}/webclient</outputDirectory>
+                                    <outputDirectory>
+                                        ${project.build.directory}/${project.build.finalName}/webclient</outputDirectory>
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.rapla</groupId>
@@ -146,7 +152,8 @@
                                     <version>${restinject.version}</version>
                                     <type>jar</type>
                                     <overWrite>true</overWrite>
-                                    <outputDirectory>${project.build.directory}/${project.build.finalName}/webclient</outputDirectory>
+                                    <outputDirectory>
+                                        ${project.build.directory}/${project.build.finalName}/webclient</outputDirectory>
                                 </artifactItem>
                             </artifactItems>
                             <outputDirectory>${project.build.directory}/wars</outputDirectory>
@@ -184,8 +191,8 @@
                                 <exclude>**/*.java</exclude>
                             </excludes>
                             <archive>
-                            	<manifestEntries>
-                            		<Permissions>all-permissions</Permissions>
+                                <manifestEntries>
+                                    <Permissions>all-permissions</Permissions>
                                     <Multi-Release>true</Multi-Release>
                                 </manifestEntries>
                             </archive>
@@ -217,7 +224,7 @@
                         <phase>prepare-package</phase>
                         <configuration>
                             <target>
-                                <mkdir dir="${webapp.dir}/webclient"/>
+                                <mkdir dir="${webapp.dir}/webclient" />
                                 <path id="dist.contents">
                                     <fileset dir="${webapp.dir}/webclient">
                                         <include name="*.jar" />
@@ -229,12 +236,13 @@
                                 </path>
                                 <property name="prop.dist.contents" refid="dist.contents" />
                                 <property name="prop.dist.contents.dir" refid="dist.contents.dir" />
-                                <echo file="${webapp.dir}/WEB-INF/classes/clientlibs.properties">${prop.dist.contents}</echo>
+                                <echo file="${webapp.dir}/WEB-INF/classes/clientlibs.properties">
+                                    ${prop.dist.contents}</echo>
                                 <replace file="${webapp.dir}/WEB-INF/classes/clientlibs.properties"
-                                         token="${prop.dist.contents.dir}${file.separator}" value=""
-                                         preserveLastModified="true" />
+                                    token="${prop.dist.contents.dir}${file.separator}" value=""
+                                    preserveLastModified="true" />
                                 <replace file="${webapp.dir}/WEB-INF/classes/clientlibs.properties"
-                                         token="${path.separator}" value=";" preserveLastModified="true" />
+                                    token="${path.separator}" value=";" preserveLastModified="true" />
                             </target>
                         </configuration>
                         <goals>
@@ -243,7 +251,8 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- you can configure the properties in a profile in a settings.xml for maven. By default ossrh profile will be used -->
+            <!-- you can configure the properties in a profile in a settings.xml for maven. By
+            default ossrh profile will be used -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
@@ -259,7 +268,7 @@
                 <configuration>
                     <archiveClasses>true</archiveClasses>
                     <!-- this is relative to the pom.xml directory -->
-<!--
+                    <!--
                     <webResources>
                         <resource>
                             <directory>../raplajsclient/dist</directory>
@@ -287,7 +296,7 @@
                             <outputDirectory>${project.build.directory}</outputDirectory>
                             <finalName>rapla-${project.version}</finalName>
                             <descriptors>
-                              <descriptor>${basedir}/src/assembly/rapla.jar.xml</descriptor>
+                                <descriptor>${basedir}/src/assembly/rapla.jar.xml</descriptor>
                             </descriptors>
                             <appendAssemblyId>false</appendAssemblyId>
                             <attach>true</attach>
@@ -303,7 +312,7 @@
                             <outputDirectory>${project.build.directory}/distribution</outputDirectory>
                             <finalName>rapla-${project.version}</finalName>
                             <descriptors>
-                              <descriptor>${basedir}/src/assembly/rapla.distribution.xml</descriptor>
+                                <descriptor>${basedir}/src/assembly/rapla.distribution.xml</descriptor>
                             </descriptors>
                             <appendAssemblyId>false</appendAssemblyId>
                             <attach>false</attach>
@@ -335,6 +344,23 @@
                     </execution>
                 </executions>
             </plugin>-->
+            <plugin>
+               <groupId>io.swagger.core.v3</groupId>
+               <artifactId>swagger-maven-plugin</artifactId>
+               <version>2.2.42</version>
+               <configuration>
+                   <outputFileName>openapi</outputFileName>
+                   <outputPath>${project.build.directory}/generated-docs</outputPath>
+               </configuration>
+               <executions>
+                   <execution>
+                       <phase>compile</phase>
+                       <goals>
+                           <goal>resolve</goal>
+                       </goals>
+                   </execution>
+               </executions>
+           </plugin>
         </plugins>
     </build>
     <profiles>
@@ -386,7 +412,8 @@
                             <keystore>${keystore.file}</keystore>
                             <keypass>${keystore.keypass}</keypass>
                             <storepass>${keystore.password}</storepass>
-                            <archiveDirectory>${project.build.directory}/${project.build.finalName}/webclient</archiveDirectory>
+                            <archiveDirectory>
+                                ${project.build.directory}/${project.build.finalName}/webclient</archiveDirectory>
                             <includes>
                                 <include>*.jar</include>
                             </includes>
@@ -432,7 +459,8 @@
                             <tsa>http://ts.ssl.com</tsa>
     -->
                             <!-- Gleiche Jars wie bisher: webclient/*.jar -->
-                            <archiveDirectory>${project.build.directory}/${project.build.finalName}/webclient</archiveDirectory>
+                            <archiveDirectory>
+                                ${project.build.directory}/${project.build.finalName}/webclient</archiveDirectory>
                             <includes>
                                 <include>*.jar</include>
                             </includes>

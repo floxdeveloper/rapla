@@ -1,5 +1,12 @@
 package org.rapla.enpoints.server;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.rapla.entities.Entity;
 import org.rapla.entities.User;
 import org.rapla.entities.domain.Allocatable;
@@ -43,7 +50,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-@Path("events") public class RaplaEventsRestPage
+@Path("events")
+@Tag(name = "Events", description = "Manage reservations/events")
+public class RaplaEventsRestPage
 {
     @Inject RaplaFacade facade;
     @Inject RemoteSession session;
@@ -59,9 +68,21 @@ import java.util.Map;
 
     private Collection<String> CLASSIFICATION_TYPES = Arrays.asList(DynamicTypeAnnotations.VALUE_CLASSIFICATION_TYPE_RESERVATION);
 
-    @GET @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML }) public List<ReservationImpl> list(@QueryParam("start") Date start,
-            @QueryParam("end") Date end, @QueryParam("resources") List<String> resources,@QueryParam("owners") List<String> ownersId, @QueryParam("eventTypes") Collection<String> eventTypes,
-            @QueryParam("attributeFilter") Map<String, String> simpleFilter) throws Exception
+    @GET
+    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
+    @Operation(
+        summary = "List events/reservations",
+        description = "Get a list of events/reservations filtered by date range, resources, owners and event types"
+    )
+    @ApiResponse(responseCode = "200", description = "List of events", content = @Content(schema = @Schema(implementation = ReservationImpl.class)))
+    @ApiResponse(responseCode = "401", description = "Unauthorized")
+    public List<ReservationImpl> list(
+            @Parameter(description = "Start date (ISO 8601 format)", required = false) @QueryParam("start") Date start,
+            @Parameter(description = "End date (ISO 8601 format)", required = false) @QueryParam("end") Date end,
+            @Parameter(description = "List of resource IDs to filter by", required = false) @QueryParam("resources") List<String> resources,
+            @Parameter(description = "List of owner user IDs to filter by", required = false) @QueryParam("owners") List<String> ownersId,
+            @Parameter(description = "List of event type keys to filter by", required = false) @QueryParam("eventTypes") Collection<String> eventTypes,
+            @Parameter(description = "Attribute filter as JSON map", required = false) @QueryParam("attributeFilter") Map<String, String> simpleFilter) throws Exception
     {
         final User user = session.checkAndGetUser(request);
         Collection<Allocatable> allocatables = new ArrayList<>();
@@ -98,7 +119,14 @@ import java.util.Map;
         return result;
     }
 
-    @GET @Path("{id}") @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML }) public ReservationImpl get(@PathParam("id") String id)
+    @GET
+    @Path("{id}")
+    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
+    @Operation(summary = "Get event by ID", description = "Retrieve a specific event/reservation by its ID")
+    @ApiResponse(responseCode = "200", description = "Event found", content = @Content(schema = @Schema(implementation = ReservationImpl.class)))
+    @ApiResponse(responseCode = "404", description = "Event not found")
+    @ApiResponse(responseCode = "401", description = "Unauthorized")
+    public ReservationImpl get(@Parameter(description = "Event/Reservation ID", required = true) @PathParam("id") String id)
             throws RaplaException
     {
         final User user = session.checkAndGetUser(request);
@@ -108,7 +136,16 @@ import java.util.Map;
         return event;
     }
 
-    @PATCH @Path("{id}") @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML }) public ReservationImpl patch(@PathParam("id") String id,ReservationImpl event) throws RaplaException
+    @PATCH
+    @Path("{id}")
+    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
+    @Operation(summary = "Partially update event", description = "Update specific fields of an event/reservation")
+    @ApiResponse(responseCode = "200", description = "Event updated", content = @Content(schema = @Schema(implementation = ReservationImpl.class)))
+    @ApiResponse(responseCode = "404", description = "Event not found")
+    @ApiResponse(responseCode = "403", description = "Forbidden - no write permissions")
+    public ReservationImpl patch(@Parameter(description = "Event/Reservation ID", required = true) @PathParam("id") String id,
+                                @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Partial event update", required = true) ReservationImpl event) throws RaplaException
+
     {
         final User user = session.checkAndGetUser(request);
         setResolver(event);
@@ -123,8 +160,12 @@ import java.util.Map;
         final StorageOperator operator = facade.getOperator();
         event.setResolver(operator);
     }
-
-    @PUT @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML }) public ReservationImpl update(ReservationImpl event) throws RaplaException
+    @PUT
+    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
+    @Operation(summary = "Update event", description = "Update a complete event/reservation")
+    @ApiResponse(responseCode = "200", description = "Event updated", content = @Content(schema = @Schema(implementation = ReservationImpl.class)))
+    @ApiResponse(responseCode = "403", description = "Forbidden - no write permissions")
+    public ReservationImpl update(@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Event object to update", required = true) ReservationImpl event) throws RaplaException
     {
         final User user = session.checkAndGetUser(request);
         setResolver(event);
@@ -134,7 +175,13 @@ import java.util.Map;
         return result;
     }
 
-    @DELETE @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML }) public boolean delete(@PathParam("id") String id) throws RaplaException
+    @DELETE 
+    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
+    @Operation(summary = "Delete event", description = "Delete an event/reservation by ID")
+    @ApiResponse(responseCode = "200", description = "Event deleted")
+    @ApiResponse(responseCode = "404", description = "Event not found")
+    @ApiResponse(responseCode = "403", description = "Forbidden - no delete permissions")
+    public boolean delete(@Parameter(description = "Event/Reservation ID", required = true) @PathParam("id") String id) throws RaplaException
     {
         final User user = session.checkAndGetUser(request);
         final Reservation event = facade.tryResolve(new ReferenceInfo<Reservation>(id, Reservation.class));
@@ -147,7 +194,13 @@ import java.util.Map;
         return true;
     }
 
-    @POST @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML }) public ReservationImpl create(ReservationImpl event) throws RaplaException
+    @POST 
+    @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
+    @Operation(summary = "Create event", description = "Create a new event/reservation")
+    @ApiResponse(responseCode = "201", description = "Event created", content = @Content(schema = @Schema(implementation = ReservationImpl.class)))
+    @ApiResponse(responseCode = "400", description = "Invalid event data")
+    @ApiResponse(responseCode = "403", description = "Forbidden - no create permissions")
+    public ReservationImpl create(@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "New event object", required = true) ReservationImpl event) throws RaplaException
     {
         final User user = session.checkAndGetUser(request);
         setResolver( event);

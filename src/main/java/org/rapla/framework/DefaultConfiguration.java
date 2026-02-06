@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class DefaultConfiguration implements Configuration {
 
     Map<String,String> attributes = new LinkedHashMap<>();
@@ -60,10 +62,12 @@ public class DefaultConfiguration implements Configuration {
         this.value = value;
     }
 
+    @JsonIgnore
     public void setValue(int intValue) {
         this.value = Integer.toString( intValue);
     }
 
+    @JsonIgnore
     public void setValue(boolean selected) {
         this.value = Boolean.toString( selected);
     }

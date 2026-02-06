@@ -35,6 +35,8 @@ import org.rapla.entities.storage.ReferenceInfo;
 import org.rapla.entities.storage.internal.ReferenceHandler;
 import org.rapla.rest.GenericObjectSerializable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.*;
 
 /** Maps can only support one type value at a time. Especially  a mixture out of references and other values is not supported*/
@@ -340,7 +342,7 @@ public class RaplaMapImpl implements EntityReferencer, DynamicTypeDependant, Rap
    public boolean isRefering(Entity entity) {
        return getReferenceHandler().isRefering( entity);
    }*/
-
+    @JsonIgnore
     public void setResolver(EntityResolver resolver)
     {
         this.resolver = resolver;
@@ -352,7 +354,8 @@ public class RaplaMapImpl implements EntityReferencer, DynamicTypeDependant, Rap
         setResolver(maps);
         map = null;
     }
-
+    
+    @JsonIgnore
     private void setResolver(Map<String, ? extends EntityReferencer> map)
     {
         if (map == null)

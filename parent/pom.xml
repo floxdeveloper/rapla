@@ -34,6 +34,7 @@
 		<hsqldb.version>2.7.1</hsqldb.version>
 		<postgresql.version>9.1-901-1.jdbc4</postgresql.version>
 		<mysql.version>8.0.28</mysql.version>
+		<swagger.version>2.2.42</swagger.version>
 
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
@@ -179,7 +180,7 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jdeps-plugin</artifactId>
 				<version>3.1.2</version>
-			</plugin>
+            </plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>
@@ -430,7 +431,25 @@
 			<version>4.13.1</version>
 			<scope>test</scope>
 		</dependency>
+		
+		<!-- OpenAPI/Swagger for REST API Documentation -->
+		<dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-jaxrs2</artifactId>
+            <version>${swagger.version}</version>
+        </dependency>
 
+        <!-- <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-jaxrs2-servlet-initializer</artifactId>
+            <version>${swagger.dependencies.version}</version>
+        </dependency> -->
+
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>${swagger.version}</version>
+        </dependency>
 		<!-- language properties generation -->
 		<dependency>
 			<groupId>com.ibm.icu</groupId>
