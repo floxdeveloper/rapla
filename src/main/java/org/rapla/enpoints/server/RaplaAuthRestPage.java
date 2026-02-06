@@ -62,50 +62,49 @@ public class RaplaAuthRestPage
     {
     }
 
+
     @POST
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN, MediaType.TEXT_HTML})
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN})
     @Operation(
-        summary = "Login with credentials",
-        description = "Authenticate user with username and password. Supports two flows:\n\n" +
-                     "1. **JSON API Login**: Send JSON with username/password in body, returns JWT token\n\n" +
-                     "2. **Form-based Web Login**: Send form parameters (username, password, url), returns HTML page with token in URL fragment and cookie\n\n" +
-                     "Content negotiation via Accept header: application/json → JSON response, text/plain → token string only"
-    )
-    @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginTokens.class)))
+        summary = "Authentication with credentials",
+        description = "Authenticate user with username and password. \r\n" +
+                        "Send JSON with username/password in body, returns JWT token\r\n" +
+                        "Content negotiation via Accept header: application/json → JSON response, text/plain → token string only",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginTokens.class))),
     @ApiResponse(responseCode = "401", description = "Invalid credentials")
-    public Response login(
-            @RequestBody(description = "Login credentials (JSON body)", required = false, content = @Content(schema = @Schema(implementation = LoginCredentials.class))) LoginCredentials credentials,
-            @Parameter(description = "Username (form parameter)") @FormParam("username") String user,
-            @Parameter(description = "Password (form parameter)") @FormParam("password") String password,
-            @Parameter(description = "Connect as (form parameter)") @FormParam("connectAs") String connectAs,
-            @Parameter(description = "Target URL to redirect to after login (form parameter)") @QueryParam("url") String url,
-            @Context HttpHeaders headers,
-            @Context HttpServletResponse response) throws Exception
-    {
-        // Determine which flow to use
-        if (credentials != null && (user == null && password == null)) {
-            // JSON API flow
-            final LoginTokens tokens = create(credentials);
-            System.out.println("JSON API login successful: " + tokens.getAccessToken());
-            // Check Accept header for content negotiation
-            String acceptHeader = headers.getHeaderString("Accept");
-            if (acceptHeader != null && acceptHeader.contains(MediaType.TEXT_PLAIN)) {
-                return Response.ok(tokens.getAccessToken(), MediaType.TEXT_PLAIN).build();
-            }
-            
-            // Default: return full LoginTokens object
-            return Response.ok(tokens).build();
-        } else if (user != null && password != null) {
-            // Form-based web flow
-            System.out.println("Form-based web login initiated for user: " + user);
-            return loginFormBased(url, user, password, connectAs, response);
-        } else {
-            throw new RaplaSecurityException("Invalid login request: provide either JSON body or form parameters");
         }
+    )
+    public Response create(LoginCredentials credentials, @Context HttpHeaders headers) throws Exception {
+        final LoginTokens tokens = dummy(credentials);
+        // Check Accept header for content negotiation
+        String acceptHeader = headers.getHeaderString("Accept");
+        if (acceptHeader != null && acceptHeader.contains(MediaType.TEXT_PLAIN)) {
+            return Response.ok(tokens.getAccessToken(), MediaType.TEXT_PLAIN).build();
+        }
+        
+        // Default: return full LoginTokens object
+        return Response.ok(tokens).build();
     }
 
-    private Response loginFormBased(String url, String user, String password, String connectAs, HttpServletResponse response) throws Exception
-    {
+    @POST
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.TEXT_HTML)
+    @Operation(
+        summary = "Form-based Login (Web)",
+        description = "Classic login via HTML form. Sets a cookie and redirects if necessary.",
+        responses = {
+            @ApiResponse(responseCode = "302", description = "Redirect to target URL after successful login"),
+            @ApiResponse(responseCode = "200", description = "Login page with error message on failed attempt")
+        }
+    )
+    public void create_(
+        @Parameter(description = "Optional target URL for redirect") @QueryParam("url") String url, 
+        @Parameter(description = "Username") @FormParam("username") String user, 
+        @Parameter(description = "Password") @FormParam("password") String password,
+        @Parameter(description = "Connect as (assume identity)") @FormParam("connectAs") String connectAs, 
+        @Context HttpServletResponse response) throws Exception {
         final String targetUrl = url != null ? Tools.createXssSafeString(url) : "../apiTest.html";
         URI uri = new URI(targetUrl);
         if (uri.isAbsolute()) {
@@ -124,7 +123,7 @@ public class RaplaAuthRestPage
                         connectAs = split[1];
                     }
                 }
-                final LoginTokens token = create(new LoginCredentials(user, password, connectAs));
+                final LoginTokens token = dummy(new LoginCredentials(user, password, connectAs));
                 final int i = targetUrl.indexOf("#");
                 String newUrl;
                 final String accessToken = token.getAccessToken();
@@ -145,7 +144,7 @@ public class RaplaAuthRestPage
                 final PrintWriter writer = response.getWriter();
                 writer.println(accessToken);
                 writer.close();
-                return Response.ok().build();
+                return;
             }
             catch (Exception e)
             {
@@ -156,13 +155,28 @@ public class RaplaAuthRestPage
         {
             errorMessage = null;
         }
-        
-        response.setContentType("text/html");
         createPage(url, user, errorMessage, response);
-        return Response.ok().build();
     }
 
+    
     @GET
+    @Operation(
+        summary = "Get HTML page",
+        description = "Retrieves HTML content for a given URL. If no URL is provided, returns the default login page."
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "HTML page content retrieved successfully",
+        content = @Content(mediaType = "text/html")
+    )
+    @ApiResponse(
+        responseCode = "400",
+        description = "Invalid URL parameter"
+    )
+    @ApiResponse(
+        responseCode = "500",
+        description = "Internal server error while retrieving HTML content"
+    )
     public void getHtml(@QueryParam("url") String url, @Context HttpServletResponse response) throws IOException
     {
         createPage(url, null, null, response);
@@ -244,10 +258,4 @@ public class RaplaAuthRestPage
         final String loginErrorMessage = i18n.getString("error.login");
         throw new RaplaSecurityException(loginErrorMessage);
     }
-
-    private LoginTokens create(LoginCredentials credentials) throws Exception
-    {
-        return dummy(credentials);
-    }
-
 }
