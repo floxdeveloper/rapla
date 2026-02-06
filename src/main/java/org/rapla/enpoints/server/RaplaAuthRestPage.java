@@ -1,5 +1,12 @@
 package org.rapla.enpoints.server;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.rapla.ConnectInfo;
 import org.rapla.RaplaResources;
 import org.rapla.components.util.Tools;
@@ -26,11 +33,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
 
 @Path("login")
+@Tag(name = "Authentication", description = "User login and authentication")
 public class RaplaAuthRestPage
 {
 
@@ -52,44 +61,36 @@ public class RaplaAuthRestPage
     }
 
     @POST
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN})
+    @Operation(
+        summary = "Login with credentials",
+        description = "Authenticate user with username and password, returns access token. Supports JSON/XML (returns full token object) or text/plain (returns access token only). Use Accept header for content negotiation."
+    )
+    @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginTokens.class)))
+    @ApiResponse(responseCode = "401", description = "Invalid credentials")
+    public Response login(@RequestBody(description = "Login credentials", required = true, content = @Content(schema = @Schema(implementation = LoginCredentials.class))) LoginCredentials credentials, @Context javax.ws.rs.core.HttpHeaders headers) throws Exception
+    {
+        final LoginTokens tokens = create(credentials);
+        
+        // Check Accept header for content negotiation
+        String acceptHeader = headers.getHeaderString("Accept");
+        if (acceptHeader != null && acceptHeader.contains(MediaType.TEXT_PLAIN)) {
+            return Response.ok(createPlain(credentials), MediaType.TEXT_PLAIN).build();
+        }
+        
+        // Default: return full LoginTokens object
+        return Response.ok(tokens).build();
+    }
+
+    @POST
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    public LoginTokens create(LoginCredentials credentials) throws Exception
-    {
-        return dummy( credentials);
-    }
-
-    @POST
-    public String createPlain(LoginCredentials credentials) throws RaplaException
-    {
-        return dummy(credentials).getAccessToken();
-    }
-
-    private LoginTokens dummy(LoginCredentials credentials) throws RaplaException
-    {
-        User user = null;
-        try
-        {
-            user = authentificationService.authenticate(credentials.getUsername(), credentials.getPassword(), credentials.getConnectAs(), logger);
-        }
-        catch(Exception e)
-        {
-            logger.error(e.getMessage());
-            final String loginErrorMessage = i18n.getString("error.login");
-            throw new RaplaSecurityException(loginErrorMessage);
-        }
-        final LoginTokens loginTokens = tokenHandler.generateAccessToken(user);
-        if (loginTokens.isValid())
-        {
-            return loginTokens;
-        }
-        final String loginErrorMessage = i18n.getString("error.login");
-        throw new RaplaSecurityException(loginErrorMessage);
-    }
-
-    @POST
-    @Produces(MediaType.TEXT_HTML)
-    public void create_(@QueryParam("url") String url, @FormParam("username") String user, @FormParam("password")String password,
-            @FormParam("connectAs") String connectAs, @Context HttpServletResponse response) throws Exception
+    @Operation(
+        summary = "Login with credentials",
+        description = "Authenticate user with username and password, returns access token"
+    )
+    @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginTokens.class)))
+    @ApiResponse(responseCode = "401", description = "Invalid credentials")
+    public void create_(@Parameter(description = "Target URL to redirect to after login") String url, @Parameter(description = "Username") String user, @Parameter(description = "Password") String password, String connectAs, @Context HttpServletResponse response) throws Exception
     {
         final String targetUrl = url !=null ? Tools.createXssSafeString(url): "../apiTest.html";
         URI uri = new URI(targetUrl);
@@ -145,7 +146,6 @@ public class RaplaAuthRestPage
     }
 
     @GET
-    @Produces(MediaType.TEXT_HTML)
     public void getHtml(@QueryParam("url") String url, @Context HttpServletResponse response) throws IOException
     {
         createPage(url, null, null, response);
@@ -204,6 +204,38 @@ public class RaplaAuthRestPage
         out.println("  </body>");
         out.println("</html>");
         out.close();
+    }
+
+    private LoginTokens dummy(LoginCredentials credentials) throws RaplaException
+    {
+        User user = null;
+        try
+        {
+            user = authentificationService.authenticate(credentials.getUsername(), credentials.getPassword(), credentials.getConnectAs(), logger);
+        }
+        catch(Exception e)
+        {
+            logger.error(e.getMessage());
+            final String loginErrorMessage = i18n.getString("error.login");
+            throw new RaplaSecurityException(loginErrorMessage);
+        }
+        final LoginTokens loginTokens = tokenHandler.generateAccessToken(user);
+        if (loginTokens.isValid())
+        {
+            return loginTokens;
+        }
+        final String loginErrorMessage = i18n.getString("error.login");
+        throw new RaplaSecurityException(loginErrorMessage);
+    }
+
+    private LoginTokens create(LoginCredentials credentials) throws Exception
+    {
+        return dummy( credentials);
+    }
+
+    private String createPlain(LoginCredentials credentials) throws RaplaException
+    {
+        return dummy(credentials).getAccessToken();
     }
 
 }
