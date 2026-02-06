@@ -30,10 +30,12 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.HttpHeaders;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URI;
@@ -61,38 +63,50 @@ public class RaplaAuthRestPage
     }
 
     @POST
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN})
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML, MediaType.TEXT_PLAIN, MediaType.TEXT_HTML})
     @Operation(
         summary = "Login with credentials",
-        description = "Authenticate user with username and password, returns access token. Supports JSON/XML (returns full token object) or text/plain (returns access token only). Use Accept header for content negotiation."
+        description = "Authenticate user with username and password. Supports two flows:\n\n" +
+                     "1. **JSON API Login**: Send JSON with username/password in body, returns JWT token\n\n" +
+                     "2. **Form-based Web Login**: Send form parameters (username, password, url), returns HTML page with token in URL fragment and cookie\n\n" +
+                     "Content negotiation via Accept header: application/json → JSON response, text/plain → token string only"
     )
     @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginTokens.class)))
     @ApiResponse(responseCode = "401", description = "Invalid credentials")
-    public Response login(@RequestBody(description = "Login credentials", required = true, content = @Content(schema = @Schema(implementation = LoginCredentials.class))) LoginCredentials credentials, @Context javax.ws.rs.core.HttpHeaders headers) throws Exception
+    public Response login(
+            @RequestBody(description = "Login credentials (JSON body)", required = false, content = @Content(schema = @Schema(implementation = LoginCredentials.class))) LoginCredentials credentials,
+            @Parameter(description = "Username (form parameter)") @FormParam("username") String user,
+            @Parameter(description = "Password (form parameter)") @FormParam("password") String password,
+            @Parameter(description = "Connect as (form parameter)") @FormParam("connectAs") String connectAs,
+            @Parameter(description = "Target URL to redirect to after login (form parameter)") @QueryParam("url") String url,
+            @Context HttpHeaders headers,
+            @Context HttpServletResponse response) throws Exception
     {
-        final LoginTokens tokens = create(credentials);
-        
-        // Check Accept header for content negotiation
-        String acceptHeader = headers.getHeaderString("Accept");
-        if (acceptHeader != null && acceptHeader.contains(MediaType.TEXT_PLAIN)) {
-            return Response.ok(createPlain(credentials), MediaType.TEXT_PLAIN).build();
+        // Determine which flow to use
+        if (credentials != null && (user == null && password == null)) {
+            // JSON API flow
+            final LoginTokens tokens = create(credentials);
+            System.out.println("JSON API login successful: " + tokens.getAccessToken());
+            // Check Accept header for content negotiation
+            String acceptHeader = headers.getHeaderString("Accept");
+            if (acceptHeader != null && acceptHeader.contains(MediaType.TEXT_PLAIN)) {
+                return Response.ok(tokens.getAccessToken(), MediaType.TEXT_PLAIN).build();
+            }
+            
+            // Default: return full LoginTokens object
+            return Response.ok(tokens).build();
+        } else if (user != null && password != null) {
+            // Form-based web flow
+            System.out.println("Form-based web login initiated for user: " + user);
+            return loginFormBased(url, user, password, connectAs, response);
+        } else {
+            throw new RaplaSecurityException("Invalid login request: provide either JSON body or form parameters");
         }
-        
-        // Default: return full LoginTokens object
-        return Response.ok(tokens).build();
     }
 
-    @POST
-    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @Operation(
-        summary = "Login with credentials",
-        description = "Authenticate user with username and password, returns access token"
-    )
-    @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginTokens.class)))
-    @ApiResponse(responseCode = "401", description = "Invalid credentials")
-    public void create_(@Parameter(description = "Target URL to redirect to after login") String url, @Parameter(description = "Username") String user, @Parameter(description = "Password") String password, String connectAs, @Context HttpServletResponse response) throws Exception
+    private Response loginFormBased(String url, String user, String password, String connectAs, HttpServletResponse response) throws Exception
     {
-        final String targetUrl = url !=null ? Tools.createXssSafeString(url): "../apiTest.html";
+        final String targetUrl = url != null ? Tools.createXssSafeString(url) : "../apiTest.html";
         URI uri = new URI(targetUrl);
         if (uri.isAbsolute()) {
             throw new RaplaSecurityException("Absolute target urls are not allowed at this point.");
@@ -102,7 +116,7 @@ public class RaplaAuthRestPage
         {
             try
             {
-                if (connectAs == null )
+                if (connectAs == null)
                 {
                     final String[] split = user.split(" su ");
                     if (split.length > 1) {
@@ -114,16 +128,16 @@ public class RaplaAuthRestPage
                 final int i = targetUrl.indexOf("#");
                 String newUrl;
                 final String accessToken = token.getAccessToken();
-                if (i >=0)
+                if (i >= 0)
                 {
-                    boolean last = i == targetUrl.length() -1;
-                    newUrl = targetUrl + (last? "" : "&")+LOGIN_COOKIE + "=" + accessToken;
+                    boolean last = i == targetUrl.length() - 1;
+                    newUrl = targetUrl + (last ? "" : "&") + LOGIN_COOKIE + "=" + accessToken;
                 }
                 else
                 {
-                    newUrl = targetUrl + "#"+LOGIN_COOKIE + "=" + accessToken;
+                    newUrl = targetUrl + "#" + LOGIN_COOKIE + "=" + accessToken;
                 }
-                newUrl+="&valid_until="+token.getValidUntil().getTime();
+                newUrl += "&valid_until=" + token.getValidUntil().getTime();
                 final Cookie cookie = new Cookie(LOGIN_COOKIE, token.toString());
                 cookie.setPath("/");
                 response.addCookie(cookie);
@@ -131,7 +145,7 @@ public class RaplaAuthRestPage
                 final PrintWriter writer = response.getWriter();
                 writer.println(accessToken);
                 writer.close();
-                return;
+                return Response.ok().build();
             }
             catch (Exception e)
             {
@@ -142,7 +156,10 @@ public class RaplaAuthRestPage
         {
             errorMessage = null;
         }
+        
+        response.setContentType("text/html");
         createPage(url, user, errorMessage, response);
+        return Response.ok().build();
     }
 
     @GET
@@ -230,12 +247,7 @@ public class RaplaAuthRestPage
 
     private LoginTokens create(LoginCredentials credentials) throws Exception
     {
-        return dummy( credentials);
-    }
-
-    private String createPlain(LoginCredentials credentials) throws RaplaException
-    {
-        return dummy(credentials).getAccessToken();
+        return dummy(credentials);
     }
 
 }
