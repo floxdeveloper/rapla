@@ -134,7 +134,7 @@ import java.util.Map;
         return result;
     }
 
-    @DELETE @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML }) public boolean delete(@PathParam("id") String id) throws RaplaException
+    @DELETE @Path("{id}") @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML }) public boolean delete(@PathParam("id") String id) throws RaplaException
     {
         final User user = session.checkAndGetUser(request);
         final Reservation event = facade.tryResolve(new ReferenceInfo<Reservation>(id, Reservation.class));
