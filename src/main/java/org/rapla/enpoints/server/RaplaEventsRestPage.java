@@ -176,6 +176,7 @@ public class RaplaEventsRestPage
     }
 
     @DELETE 
+    @Path("{id}") 
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
     @Operation(summary = "Delete event", description = "Delete an event/reservation by ID")
     @ApiResponse(responseCode = "200", description = "Event deleted")
