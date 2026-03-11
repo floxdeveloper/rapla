@@ -344,7 +344,7 @@ public class AppointmentSynchronizer
                 }
                 catch (ServiceResponseException e)
                 {
-                    getLogger().error(e.getMessage(), e);
+                    getLogger().warn(getMailboxName() + " Deleted appointment with id " + identifier + " failed due to " + e.getMessage());
                 }
             }
         }

@@ -25,14 +25,17 @@ import org.rapla.logger.Logger;
 public class AppointmentInfoUI extends HTMLInfo<Appointment> {
 	ReservationInfoUI parent;
 	AppointmentFormater appointmentFormater;
+    boolean exportContext = false;
 	
-    public AppointmentInfoUI(RaplaResources i18n, RaplaLocale raplaLocale, RaplaFacade facade, Logger logger, AppointmentFormater appointmentFormater)
+    public AppointmentInfoUI(RaplaResources i18n, RaplaLocale raplaLocale, RaplaFacade facade, Logger logger, AppointmentFormater appointmentFormater, boolean exportContext)
     {
         super( i18n, raplaLocale, facade, logger);
-        parent = new ReservationInfoUI( i18n, raplaLocale, facade, logger, appointmentFormater);
+        this.exportContext = exportContext;
+        parent = new ReservationInfoUI( i18n, raplaLocale, facade, logger, appointmentFormater, exportContext);
         this.appointmentFormater = appointmentFormater;
     }
-    
+
+
 
     @Override
     public String getTooltip(Appointment appointment,User user) {
