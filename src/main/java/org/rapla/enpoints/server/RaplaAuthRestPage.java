@@ -106,7 +106,7 @@ public class RaplaAuthRestPage
         @Parameter(description = "Password") @FormParam("password") String password,
         @Parameter(description = "Connect as (assume identity)") @FormParam("connectAs") String connectAs, 
         @Context HttpServletResponse response) throws Exception {
-        final String targetUrl = url != null ? Tools.createXssSafeString(url) : "../apiTest.html";
+        final String targetUrl = url != null ? Tools.createXssSafeString(url) : "../../apiTest.html";
         URI uri = new URI(targetUrl);
         if (uri.isAbsolute()) {
             throw new RaplaSecurityException("Absolute target urls are not allowed at this point.");
@@ -161,6 +161,7 @@ public class RaplaAuthRestPage
 
     
     @GET
+    @Produces(MediaType.TEXT_HTML)
     @Operation(
         summary = "Get HTML page",
         description = "Retrieves HTML content for a given URL. If no URL is provided, returns the default login page."

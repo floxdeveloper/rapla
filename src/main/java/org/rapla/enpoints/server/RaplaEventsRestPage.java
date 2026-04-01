@@ -33,6 +33,7 @@ import org.rapla.storage.StorageOperator;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -138,6 +139,7 @@ public class RaplaEventsRestPage
 
     @PATCH
     @Path("{id}")
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
     @Operation(summary = "Partially update event", description = "Update specific fields of an event/reservation")
     @ApiResponse(responseCode = "200", description = "Event updated", content = @Content(schema = @Schema(implementation = ReservationImpl.class)))
@@ -161,6 +163,7 @@ public class RaplaEventsRestPage
         event.setResolver(operator);
     }
     @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
     @Operation(summary = "Update event", description = "Update a complete event/reservation")
     @ApiResponse(responseCode = "200", description = "Event updated", content = @Content(schema = @Schema(implementation = ReservationImpl.class)))
@@ -195,7 +198,8 @@ public class RaplaEventsRestPage
         return true;
     }
 
-    @POST 
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces({ MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML })
     @Operation(summary = "Create event", description = "Create a new event/reservation")
     @ApiResponse(responseCode = "201", description = "Event created", content = @Content(schema = @Schema(implementation = ReservationImpl.class)))
