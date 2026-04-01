@@ -23,9 +23,18 @@ import microsoft.exchange.webservices.data.search.FindItemsResults;
 import microsoft.exchange.webservices.data.search.FolderView;
 import microsoft.exchange.webservices.data.search.ItemView;
 import microsoft.exchange.webservices.data.search.filter.SearchFilter;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustAllStrategy;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.rapla.framework.RaplaException;
 import org.rapla.logger.Logger;
 
+import javax.net.ssl.SSLContext;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -42,6 +51,8 @@ public class EWSConnector {
     private final URI uri;
     private final WebCredentials credentials;
     private final Logger logger;
+    private final Boolean developmentMode= Boolean.valueOf(System.getProperty("org.rapla.developmentmode","false"));
+
     private String exchangeUsername;
     private String mailboxAddress;
 
@@ -51,6 +62,7 @@ public class EWSConnector {
     	this( fqdn,new WebCredentials(exchangeUsername, exchangePassword), logger);
         this.exchangeUsername = exchangeUsername;
         this.mailboxAddress = mailboxAddress;
+
     }
     /**
      * The constructor
@@ -66,13 +78,14 @@ public class EWSConnector {
         this.logger = logger;
         uri = new URI(fqdn.toLowerCase().endsWith("/ews/exchange.asmx") ? fqdn : fqdn + "/EWS/Exchange.asmx");
         this.credentials = credentials;
+
     }
 
     /**
      * @return {@link ExchangeService} the service
      */
     public ExchangeService getService() throws RaplaException {
-        ExchangeService tmpService = new ExchangeService(ExchangeVersion.Exchange2010_SP2); //, DateTools.getTimeZone());//, DateTools.getTimeZone());
+        ExchangeService tmpService = new RaplaExchangeService(); //, DateTools.getTimeZone());//, DateTools.getTimeZone());
         if ( logger!= null && logger.isDebugEnabled())
         {
             tmpService.setTraceEnabled( true );
@@ -89,6 +102,31 @@ public class EWSConnector {
         tmpService.setUrl(uri);
 
         return tmpService;
+    }
+
+     class RaplaExchangeService extends ExchangeService {
+
+        RaplaExchangeService() {
+            super(ExchangeVersion.Exchange2010_SP2);
+        }
+        @Override
+        protected Registry<ConnectionSocketFactory> createConnectionSocketFactoryRegistry() {
+            if (!developmentMode)
+            {
+               return super.createConnectionSocketFactoryRegistry();
+            }
+            try {
+                SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, TrustAllStrategy.INSTANCE).build();
+                SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
+
+                return RegistryBuilder.<ConnectionSocketFactory>create()
+                        .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                        .register("https", sslsf)
+                        .build();
+            } catch (Exception e) {
+                return super.createConnectionSocketFactoryRegistry();
+            }
+        }
     }
 
 
@@ -143,7 +181,9 @@ public class EWSConnector {
             for ( Item itItem : fiResults) {
                 OutParam<Object> WlinkAddressBookEID = new OutParam<>();
                 EmailMessage emailMessage = (EmailMessage) itItem;
+                EmailAddress from = emailMessage.getFrom();
                 ExtendedPropertyCollection extendedProperties = emailMessage.getExtendedProperties();
+                String subject = itItem.getSubject();
                 if (extendedProperties != null && extendedProperties.tryGetValue(Object.class, PidTagWlinkAddressBookEID, WlinkAddressBookEID))
                 {
                     byte[] ssStoreID = (byte[])WlinkAddressBookEID.getParam();
@@ -158,24 +198,39 @@ public class EWSConnector {
                             ssArraynum = 1;
                         }
                     }
-                    NameResolutionCollection resolvedNames = getService().resolveName(lnLegDN, ResolveNameSearchLocation.DirectoryOnly, false);
+                    NameResolutionCollection resolvedNames = service.resolveName(lnLegDN, ResolveNameSearchLocation.DirectoryOnly, false);
+                    String mailbox;
                     if (resolvedNames.getCount() > 0)
                     {
-                        String mailbox = resolvedNames.iterator().next().getMailbox().getAddress().toLowerCase();
-                        FolderId SharedCalendarId = new FolderId(WellKnownFolderName.Calendar, new Mailbox(mailbox));
-                        CalendarFolder SharedCalendaFolder;
-                        try {
-                            SharedCalendaFolder= (CalendarFolder) Folder.bind(service, SharedCalendarId);
-                        } catch (Exception ex) {
-                            logger.warn("Can't bind calendar folder for mailbox " + mailbox + " Cause " + ex.getMessage());
-                            errorMessages.add(mailbox + " Error: cannot bind " );
+                        mailbox = resolvedNames.iterator().next().getMailbox().getAddress().toLowerCase();
+                    } else {
+                        String domain = mailboxAddress.substring(mailboxAddress.indexOf('@') + 1);
+                        String[] parts = subject.split(",");
+                        if (parts.length == 2) {
+                            String lastName = parts[0].trim().toLowerCase();
+                            String firstName = parts[1].trim().toLowerCase();
+                            mailbox = firstName + "." + lastName + "@" + domain;
+                            logger.info("Could not find maibox for  lnLegDN " + lnLegDN + " guessing mailbox " + mailbox);
+                        } else {
+                            String message = "Could not resolve calender for " + subject + " lnLegDN: " + lnLegDN;
+                            errorMessages.add(message);
+                            logger.warn(message);
                             continue;
                         }
-                        rtList.put(mailbox.toLowerCase(), SharedCalendaFolder);
                     }
-
+                    FolderId SharedCalendarId = new FolderId(WellKnownFolderName.Calendar, new Mailbox(mailbox));
+                    CalendarFolder sharedFolder;
+                    try {
+                        sharedFolder= (CalendarFolder) Folder.bind(service, SharedCalendarId);
+                        logger.debug("bind successful for mailbox " + mailbox + " for lnLegDN " + lnLegDN);
+                    } catch (Exception ex) {
+                        logger.warn("Can't bind calendar folder for mailbox " + mailbox + " Cause " + ex.getMessage());
+                        errorMessages.add(mailbox + " Error: cannot bind " );
+                        continue;
+                    }
+                    rtList.put(mailbox.toLowerCase(), sharedFolder);
                 } else {
-                    String message = "Could not find calendar for " + itItem.getSubject();
+                    String message = "Could not find calendar for " + subject;
                     errorMessages.add(message);
                     logger.warn(message);
                 }

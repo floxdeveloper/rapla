@@ -33,11 +33,13 @@ import java.util.List;
 public class ReservationInfoUI extends ClassificationInfoUI<Reservation> {
 
     private final PermissionController permissionController;
-    AppointmentFormater appointmentFormater;
+    final AppointmentFormater appointmentFormater;
+    final boolean exportContext;
 
-    public ReservationInfoUI(RaplaResources i18n, RaplaLocale raplaLocale, RaplaFacade facade, Logger logger, AppointmentFormater appointmentFormater)
+    public ReservationInfoUI(RaplaResources i18n, RaplaLocale raplaLocale, RaplaFacade facade, Logger logger, AppointmentFormater appointmentFormater,boolean exportContext)
     {
         super(i18n, raplaLocale, facade, logger);
+        this.exportContext = exportContext;
         this.appointmentFormater = appointmentFormater;
         this.permissionController = facade.getPermissionController();
     }
@@ -108,21 +110,38 @@ public class ReservationInfoUI extends ClassificationInfoUI<Reservation> {
     public List<Row> getAttributes(Reservation reservation,LinkController controller, User user, boolean excludeAdditionalInfos) {
         ArrayList<Row> att = new ArrayList<>();
         att.addAll( getClassificationAttributes( reservation, excludeAdditionalInfos,controller, user ));
-        ReferenceInfo<User> ownerId = reservation.getOwnerRef();
-        if ( ownerId != null)
+        if ( !exportContext )
         {
-            final String ownerName = getUsername( ownerId);
-            String ownerText = encode(ownerName);
-            att.add( new Row(getString("reservation.owner"), ownerText));
-        }
-        if ( excludeAdditionalInfos )
-        {
-            ReferenceInfo<User> lastChangeById = reservation.getLastChangedBy();
-            if (lastChangeById != null && (!lastChangeById.equals(ownerId)))
+            ReferenceInfo<User> ownerId = reservation.getOwnerRef();
+            final String ownerName;
+            if ( ownerId != null)
             {
-                final String lastChangedName = getUsername(lastChangeById);
-                String lastChangeByText = encode(lastChangedName);
-                att.add(new Row(getString("last_changed_by"), lastChangeByText));
+                ownerName = getUsername( ownerId);
+                String ownerText = encode(ownerName);
+                att.add( new Row(getString("reservation.owner"), ownerText));
+            }
+            else
+            {
+                ownerName = null;
+            }
+
+            ReferenceInfo<User> lastChangeById = reservation.getLastChangedBy();
+            if (lastChangeById != null )//&& (!lastChangeById.equals(ownerId)))
+            {
+                final String lastChangedName;
+                if (!lastChangeById.equals(ownerId))
+                {
+                    lastChangedName = getUsername(lastChangeById);
+                }
+                else
+                {
+                    lastChangedName = ownerName;
+                }
+                if (ownerName != null)
+                {
+                    String lastChangeByText = encode(lastChangedName);
+                    att.add(new Row(getString("last_changed_by"), lastChangeByText));
+                }
             }
         }
         Allocatable[] resources = reservation.getResources();

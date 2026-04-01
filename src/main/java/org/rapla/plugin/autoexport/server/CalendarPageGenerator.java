@@ -317,12 +317,7 @@ public class CalendarPageGenerator
             try
             {
                 model = facade.newCalendarModel(user);
-                boolean planningStatusEnabled = facade.getSystemPreferences().getEntryAsBoolean(PlanningStatusPlugin.ENABLED, PlanningStatusPlugin.ENABLE_BY_DEFAULT);
-                model.load(filename);
-                if ( planningStatusEnabled )
-                {
-                    model.setAppointmentFilter(PlanningStatusFilter.createFromCalendarModel( model));
-                }
+                model.loadRegardingPlanningStatus(filename, facade.getSystemPreferences());
             }
             catch (CalendarNotFoundExeption ex)
             {

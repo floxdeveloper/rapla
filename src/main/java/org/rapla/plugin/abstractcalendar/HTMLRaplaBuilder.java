@@ -74,6 +74,10 @@ public class HTMLRaplaBuilder extends RaplaBuilder {
         return true;
     }
 
+    @Override
+    protected boolean isExportContext() {
+        return true;
+    }
 
     private Block createBlock(RaplaBlockContext blockContext, Date start, Date end) {
         HTMLRaplaBlock block = new HTMLRaplaBlock(blockContext, start, end);
