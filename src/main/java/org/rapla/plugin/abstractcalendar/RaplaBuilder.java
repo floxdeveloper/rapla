@@ -489,7 +489,8 @@ public class RaplaBuilder
         ArrayList<Block> blocks = new ArrayList<>();
         {
             //long time = System.currentTimeMillis();
-            AppointmentInfoUI appointmentInfoUI = new AppointmentInfoUI(i18n,raplaLocale, raplaFacade,logger, appointmentFormater);
+            AppointmentInfoUI appointmentInfoUI = new AppointmentInfoUI(i18n,raplaLocale, raplaFacade,logger, appointmentFormater, isExportContext());
+
         	BuildContext buildContext = new BuildContext(this, appointmentInfoUI, blocks);
             Assert.notNull(preparedBlocks, "call prepareBuild first");
             for (AppointmentBlock block:preparedBlocks)
@@ -504,6 +505,10 @@ public class RaplaBuilder
             //logger.info( "Block creation took " + (System.currentTimeMillis() - time) + " ms.");
         }
         return blocks;
+    }
+
+    protected boolean isExportContext() {
+        return false;
     }
 
     private RaplaBlockContext[] getBlocksForAppointment(AppointmentBlock block, BuildContext buildContext) {

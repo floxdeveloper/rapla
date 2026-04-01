@@ -76,7 +76,7 @@ public class InfoFactoryImpl extends RaplaGUIComponent implements InfoFactory
         this.ioInterface = ioInterface;
         this.dialogUiFactory = dialogUiFactory;
         views.put( DynamicType.class, new DynamicTypeInfoUI(clientFacade, i18n, raplaLocale, logger) );
-        views.put( Reservation.class, new ReservationInfoUI(i18n, raplaLocale, facade, logger, appointmentFormater)
+        views.put( Reservation.class, new ReservationInfoUI(i18n, raplaLocale, facade, logger, appointmentFormater, false)
                 {
                     // Special usecase, because we want to use export name in all other names
                     @Override
@@ -87,7 +87,7 @@ public class InfoFactoryImpl extends RaplaGUIComponent implements InfoFactory
                     }
                 }
         );
-        views.put( Appointment.class, new AppointmentInfoUI(i18n, raplaLocale, facade, logger, appointmentFormater) );
+        views.put( Appointment.class, new AppointmentInfoUI(i18n, raplaLocale, facade, logger, appointmentFormater, false) );
         views.put( Allocatable.class, new AllocatableInfoUI(clientFacade, i18n, raplaLocale, logger) );
         views.put( User.class, new UserInfoUI(clientFacade, i18n, raplaLocale, logger) );
         views.put( Period.class, new PeriodInfoUI(facade, i18n, raplaLocale, logger) );

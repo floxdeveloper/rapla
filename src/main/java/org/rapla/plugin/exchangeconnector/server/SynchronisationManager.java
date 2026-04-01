@@ -3,6 +3,7 @@ package org.rapla.plugin.exchangeconnector.server;
 import  io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.functions.Action;
 import microsoft.exchange.webservices.data.core.exception.http.HttpErrorException;
+import microsoft.exchange.webservices.data.core.exception.service.remote.ServiceResponseException;
 import microsoft.exchange.webservices.data.core.service.folder.CalendarFolder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -48,7 +49,13 @@ import org.rapla.storage.UpdateResult;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.X509Certificate;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -155,7 +162,7 @@ public class SynchronisationManager implements ServerExtension
                         try {
                             String mailboxName = mailbox.getKey();
 
-//                            if (!mailboxName.contains("kohlhaas") && !mailboxName.contains("mosbach")) {
+//                            if (!mailboxName.contains("kohlhaas") || !mailboxName.contains("mosbach")) {
 //                                continue;
 //                            }
                             CalendarFolder folder = mailbox.getValue();
@@ -1150,7 +1157,6 @@ public class SynchronisationManager implements ServerExtension
                 if (usedSharedMailboxes.isEmpty()) {
                     continue;
                 }
-                final Logger logger = this.logger.getChildLogger("exchange");
                 final AppointmentSynchronizer worker = new AppointmentSynchronizer(logger, converter, exchangeTimezoneId, exchangeAppointmentCategory, user, userConnect.getEwsConnector(),
                         notificationMail, task, appointment, i18n.getLocale(), usedSharedMailboxes);
 
@@ -1174,10 +1180,12 @@ public class SynchronisationManager implements ServerExtension
                     }
                 } catch (Exception e) {
                     String message = e.getMessage();
-                    Throwable cause = e.getCause();
-                    if (cause != null && cause.getCause() != null) {
+                    Throwable cause = e;
+                    int depth = 0;
+                    while (cause != null && cause.getCause() != null && depth++<4) {
                         cause = cause.getCause();
                     }
+                    boolean accessEroor = false;
                     if (cause instanceof HttpErrorException) {
                         int httpErrorCode = ((HttpErrorException) cause).getHttpErrorCode();
                         if (httpErrorCode == 401) {
@@ -1195,9 +1203,15 @@ public class SynchronisationManager implements ServerExtension
                                 }
                             }
                         }
+                        accessEroor = true;
+                    }
+                    if ( message.contains("Access is denied") || message.contains("Zugriff") || message.contains("verweigert") ) {
+                        message = "Cannot write into exchange calendar " + cause.getMessage();
+                        accessEroor = true;
                     }
                     if (cause instanceof IOException) {
                         message = "Keine Verbindung zum Exchange " + cause.getMessage();
+                        accessEroor = true;
                     }
                     String toString = getAppointmentMessage(task);
                     if (message != null) {
@@ -1211,6 +1225,10 @@ public class SynchronisationManager implements ServerExtension
                     logger.warn("Can't synchronize " + task + " " + toString + " " + message);
                     result.open++;
                     toStore.add(task);
+                    // We skip all other tasks for the user due to accessError
+                    if (accessEroor) {
+                        break;
+                    }
                 }
                 SyncStatus after = task.getStatus();
                 if (after == SyncStatus.deleted && beforeStatus != SyncStatus.deleted) {

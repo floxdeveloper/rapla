@@ -22,6 +22,8 @@ import org.rapla.framework.RaplaInitializationException;
 import org.rapla.framework.RaplaLocale;
 import org.rapla.logger.Logger;
 import org.rapla.plugin.export2ical.Export2iCalPlugin;
+import org.rapla.plugin.planningstatus.PlanningStatusFilter;
+import org.rapla.plugin.planningstatus.PlanningStatusPlugin;
 import org.rapla.scheduler.Promise;
 import org.rapla.server.PromiseWait;
 import org.rapla.storage.StorageOperator;
@@ -203,7 +205,8 @@ public class Export2iCalServlet
 	private CalendarModel getCalendarModel(Preferences preferences, User user, String filename) {
 		try {
 			final CalendarSelectionModel calModel = facade.newCalendarModel(user);
-			calModel.load(filename);
+
+            calModel.loadRegardingPlanningStatus(filename, facade.getSystemPreferences());
 
 			int daysBefore = global_interval ? global_daysBefore : preferences.getEntryAsInteger(Export2iCalPlugin.PREF_BEFORE_DAYS, global_daysBefore);
 			int daysAfter = global_interval ? global_daysAfter : preferences.getEntryAsInteger(Export2iCalPlugin.PREF_AFTER_DAYS, global_daysAfter);

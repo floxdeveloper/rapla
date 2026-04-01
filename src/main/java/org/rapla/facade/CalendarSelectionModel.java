@@ -1,10 +1,13 @@
 package org.rapla.facade;
 
 import org.rapla.components.util.TimeInterval;
+import org.rapla.entities.configuration.Preferences;
 import org.rapla.entities.domain.Allocatable;
 import org.rapla.entities.domain.Appointment;
 import org.rapla.entities.dynamictype.ClassificationFilter;
 import org.rapla.framework.RaplaException;
+import org.rapla.plugin.planningstatus.PlanningStatusFilter;
+import org.rapla.plugin.planningstatus.PlanningStatusPlugin;
 import org.rapla.scheduler.Promise;
 
 import java.util.Collection;
@@ -34,7 +37,16 @@ public interface CalendarSelectionModel extends CalendarModel{
     Promise<Void> save(final String filename);
 
     void load(final String filename) throws RaplaException;
-    
+
+    default void loadRegardingPlanningStatus(final String filename, Preferences systemPreferences) throws RaplaException {
+        boolean planningStatusEnabled = systemPreferences.getEntryAsBoolean(PlanningStatusPlugin.ENABLED, PlanningStatusPlugin.ENABLE_BY_DEFAULT);
+        load(filename);
+        if ( planningStatusEnabled )
+        {
+            setAppointmentFilter(PlanningStatusFilter.createFromCalendarModel( this));
+        }
+    }
+
     CalendarSelectionModel clone();
 	
 	void setMarkedIntervals(Collection<TimeInterval> timeIntervals,  boolean timeEnabled);

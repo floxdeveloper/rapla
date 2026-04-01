@@ -620,7 +620,7 @@ public class ReservationControllerImpl implements ReservationController {
         // copyReservations info text to system clipboard
         {
             StringBuffer buf = new StringBuffer();
-            ReservationInfoUI reservationInfoUI = new ReservationInfoUI(getI18n(), getRaplaLocale(), getFacade(), logger, appointmentFormater);
+            ReservationInfoUI reservationInfoUI = new ReservationInfoUI(getI18n(), getRaplaLocale(), getFacade(), logger, appointmentFormater, false);
             boolean excludeAdditionalInfos = false;
 
             List<Row> attributes = reservationInfoUI.getAttributes(sourceReservation, null, null, excludeAdditionalInfos);
