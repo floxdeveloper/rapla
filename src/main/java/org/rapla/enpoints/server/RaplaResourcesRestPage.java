@@ -26,14 +26,17 @@ import org.rapla.storage.StorageOperator;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -119,6 +122,7 @@ public class RaplaResourcesRestPage {
     }
 
 	@GET
+	@Produces(MediaType.APPLICATION_JSON)
 	@Operation(summary = "List resources and persons", description = "Get a list of resources and persons filtered by type and attributes")
 	@ApiResponse(responseCode = "200", description = "List of resources", content = @Content(schema = @Schema(implementation = AllocatableImpl.class)))
 	@ApiResponse(responseCode = "401", description = "Unauthorized")
@@ -140,6 +144,7 @@ public class RaplaResourcesRestPage {
 
 	@GET
 	@Path("{id}")
+	@Produces(MediaType.APPLICATION_JSON)
 	@Operation(summary = "Get resource by ID", description = "Retrieve a specific resource or person by its ID")
 	@ApiResponse(responseCode = "200", description = "Resource found", content = @Content(schema = @Schema(implementation = AllocatableImpl.class)))
 	@ApiResponse(responseCode = "404", description = "Resource not found")
@@ -151,12 +156,12 @@ public class RaplaResourcesRestPage {
 		return resource;
 	}
 
+	@DELETE
+	@Path("{id}")
 	@Operation(summary = "Delete resource", description = "Delete a resource or person by ID")
 	@ApiResponse(responseCode = "200", description = "Resource deleted")
 	@ApiResponse(responseCode = "404", description = "Resource not found")
 	@ApiResponse(responseCode = "403", description = "Forbidden - no delete permissions")
-	@DELETE
-	@Path("{id}")
 	public void delete(@Parameter(description = "Resource/Person ID", required = true) @PathParam("id") String id) throws RaplaException {
 		final User user = session.checkAndGetUser(request);
 		AllocatableImpl resource = (AllocatableImpl) operator.resolve(id, Allocatable.class);
@@ -166,10 +171,12 @@ public class RaplaResourcesRestPage {
 		operator.storeAndRemove(storeObjects, removeObjects, user, false);
 	}
 
+	@PUT
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
 	@Operation(summary = "Update resource", description = "Update a complete resource or person")
 	@ApiResponse(responseCode = "200", description = "Resource updated", content = @Content(schema = @Schema(implementation = AllocatableImpl.class)))
 	@ApiResponse(responseCode = "403", description = "Forbidden - no write permissions")
-	@PUT
 	public AllocatableImpl update(@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Resource object to update", required = true) AllocatableImpl resource) throws RaplaException {
         final User user = session.checkAndGetUser(request);
 		securityManager.checkWritePermissions(user, resource);
@@ -183,11 +190,13 @@ public class RaplaResourcesRestPage {
 		AllocatableImpl result = facade.getPersistent(resource);
 		return result;
 	}
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
 	@Operation(summary = "Create resource", description = "Create a new resource or person")
 	@ApiResponse(responseCode = "201", description = "Resource created", content = @Content(schema = @Schema(implementation = AllocatableImpl.class)))
 	@ApiResponse(responseCode = "400", description = "Invalid resource data")
 	@ApiResponse(responseCode = "403", description = "Forbidden - no create permissions")
-	@POST
 	public AllocatableImpl create(@io.swagger.v3.oas.annotations.parameters.RequestBody(description = "New resource object", required = true) AllocatableImpl resource) throws RaplaException {
 		final User user = session.checkAndGetUser(request);
 		resource.setResolver(operator);
