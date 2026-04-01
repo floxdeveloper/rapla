@@ -89,6 +89,7 @@ public class RaplaAuthRestPage
     }
 
     @POST
+    @Path("form")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_HTML)
     @Operation(
@@ -99,7 +100,7 @@ public class RaplaAuthRestPage
             @ApiResponse(responseCode = "200", description = "Login page with error message on failed attempt")
         }
     )
-    public void create_(
+    public void createFormBased(
         @Parameter(description = "Optional target URL for redirect") @QueryParam("url") String url, 
         @Parameter(description = "Username") @FormParam("username") String user, 
         @Parameter(description = "Password") @FormParam("password") String password,
