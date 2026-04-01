@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.rapla.entities.Entity;
@@ -75,7 +76,7 @@ public class RaplaEventsRestPage
         summary = "List events/reservations",
         description = "Get a list of events/reservations filtered by date range, resources, owners and event types"
     )
-    @ApiResponse(responseCode = "200", description = "List of events", content = @Content(schema = @Schema(implementation = ReservationImpl.class)))
+    @ApiResponse(responseCode = "200", description = "List of events", content = @Content(array = @ArraySchema(schema = @Schema(implementation = ReservationImpl.class))))
     @ApiResponse(responseCode = "401", description = "Unauthorized")
     public List<ReservationImpl> list(
             @Parameter(description = "Start date (ISO 8601 format)", required = false) @QueryParam("start") Date start,

@@ -2,6 +2,7 @@ package org.rapla.enpoints.server;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -124,7 +125,7 @@ public class RaplaResourcesRestPage {
 	@GET
 	@Produces(MediaType.APPLICATION_JSON)
 	@Operation(summary = "List resources and persons", description = "Get a list of resources and persons filtered by type and attributes")
-	@ApiResponse(responseCode = "200", description = "List of resources", content = @Content(schema = @Schema(implementation = AllocatableImpl.class)))
+	@ApiResponse(responseCode = "200", description = "List of resources", content = @Content(array = @ArraySchema(schema = @Schema(implementation = AllocatableImpl.class))))
 	@ApiResponse(responseCode = "401", description = "Unauthorized")
 	public List<AllocatableImpl> list(
 			@Parameter(description = "List of resource type keys to filter by", required = false) @QueryParam("resourceTypes") List<String> resourceTypes,
