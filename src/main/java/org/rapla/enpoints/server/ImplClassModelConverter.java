@@ -26,7 +26,6 @@ public class ImplClassModelConverter implements ModelConverter {
     public Schema resolve(AnnotatedType type,
             ModelConverterContext context,
             Iterator<ModelConverter> chain) {
-        System.out.println(type);
         if (type.isSchemaProperty()) {
             JavaType _type = Json.mapper().constructType(type.getType());
             if (_type != null) {
@@ -36,8 +35,6 @@ public class ImplClassModelConverter implements ModelConverter {
                     // Nutze die Impl-Klasse statt des Interfaces
                     JavaType implType = Json.mapper().constructType(implClass);
                     AnnotatedType annotatedImplType = new AnnotatedType(implType);
-                    System.out.println(implClass);
-                    System.out.println(implType);
                     return context.resolve(annotatedImplType);
                 }
             }
