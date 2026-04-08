@@ -352,6 +352,9 @@
                     <resourcePackages>
                         <resourcePackage>org.rapla.enpoints.server</resourcePackage>
                     </resourcePackages>
+                    <modelConverterClasses>
+                        <modelConverterClass>org.rapla.enpoints.server.ImplClassModelConverter</modelConverterClass>
+                    </modelConverterClasses>
                    <outputFileName>openapi</outputFileName>
                    <outputPath>${project.build.directory}/generated-docs</outputPath>
                </configuration>
